@@ -1,0 +1,13 @@
+name: Production deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment_name: production
+      runner_label: prod
+      app_name: nest-api-prod
+    secrets: inherit

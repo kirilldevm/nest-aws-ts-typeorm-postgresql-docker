@@ -1,0 +1,16 @@
+name: Development deployment
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment_name: dev
+      runner_label: dev
+      app_name: nest-api-dev
+    secrets: inherit
