@@ -1,0 +1,79 @@
+name: Reusable Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      runner_label:
+        required: true
+        type: string
+      app_name:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment_name }}
+    runs-on: ${{ fromJSON(format('["self-hosted","{0}"]', inputs.runner_label)) }}
+    environment: ${{ inputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build environment file
+        env:
+          NODE_ENV: ${{ vars.NODE_ENV }}
+          PORT: ${{ vars.PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ vars.JWT_EXPIRES_IN }}
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_SYNC: ${{ vars.DB_SYNC }}
+        run: |
+          {
+            echo "NODE_ENV=${NODE_ENV}"
+            echo "PORT=${PORT}"
+            echo "JWT_SECRET=${JWT_SECRET}"
+            echo "JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-3600}"
+            echo "POSTGRES_HOST=${POSTGRES_HOST}"
+            echo "POSTGRES_PORT=${POSTGRES_PORT:-5432}"
+            echo "POSTGRES_USER=${POSTGRES_USER}"
+            echo "POSTGRES_DB=${POSTGRES_DB}"
+            echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+            echo "DB_SYNC=${DB_SYNC:-0}"
+          } > .env
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run migrations
+        run: npm run typeorm:migrate
+
+      - name: Deploy with PM2
+        run: |
+          if pm2 describe "${{ inputs.app_name }}" >/dev/null 2>&1; then
+            pm2 restart "${{ inputs.app_name }}" --update-env
+          else
+            pm2 start dist/main.js --name "${{ inputs.app_name }}"
+          fi
+          pm2 save

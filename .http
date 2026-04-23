@@ -1,0 +1,124 @@
+### Variables
+
+@baseUrl = http://localhost:3500
+
+@contentType = application/json
+
+# Main page
+GET {{baseUrl}}
+
+# Auth page
+### Register user
+# @name registerUser
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "password": "Password123!",
+  "name": "Test User"
+}
+
+### (variables)
+@userId = {{ registerUser.response.body.id }}
+
+### Login user
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "password": "Password123!"
+}
+
+### (variables)
+@authToken = {{ loginUser.response.body.accessToken }}
+
+# Tasks page
+
+### Get all tasks
+# @name getAllTasks
+GET {{baseUrl}}/tasks
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+### Get all tasks with status IN_PROGRESS
+# @name getAllTasksWithStatusInProgress
+GET {{baseUrl}}/tasks?labels=label1,label2&sortBy=createdAt&sortOrder=DESC
+Authorization: Bearer {{authToken}}
+
+
+### Get a task by id
+# @name getTaskById
+GET {{baseUrl}}/tasks/{{taskId}}
+Authorization: Bearer {{authToken}}
+
+
+### Create a task
+# @name createTask
+POST {{baseUrl}}/tasks
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "title": "Yoq",
+  "description": "Task 1 description",
+  "user_id": "321e47ff-a82f-4fe0-8342-974a40755316",
+  "labels": [
+    {
+      "name": "label1"
+    }
+  ]
+}
+
+### Set task id
+@taskId = {{ createTask.response.body.id }}
+
+### Change task status
+# @name changeTaskStatus
+PATCH {{baseUrl}}/tasks/{{taskId}}/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+
+{
+  "status": "IN_PROGRESS"
+}
+
+### Add labels to a task
+# @name addLabels
+PATCH {{baseUrl}}/tasks/{{taskId}}/labels
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+  [
+    {
+      "name": "label2"
+    }
+  ]
+
+### Update task
+PATCH {{baseUrl}}/tasks/{{taskId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{authToken}}
+{
+  "title": "Updated Task",
+  "description": "Updated description",
+  "status": "DONE",
+  "labels": [
+  {
+    "name": "label2"
+  }
+  ]
+}
+
+### Delete a task
+DELETE {{baseUrl}}/tasks/{{taskId}}
+Authorization: Bearer {{authToken}}
+
+### Remove labels from a task
+DELETE {{baseUrl}}/tasks/{{taskId}}/labels
+Content-Type: {{contentType}}
+
+[
+  "label1"
+]
