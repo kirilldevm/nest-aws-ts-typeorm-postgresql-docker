@@ -90,6 +90,6 @@ jobs:
           if pm2 describe "${{ inputs.app_name }}" >/dev/null 2>&1; then
             pm2 restart "${{ inputs.app_name }}" --update-env
           else
-            pm2 start dist/main.js --name "${{ inputs.app_name }}"
+            pm2 start dist/src/main.js --name "${{ inputs.app_name }}"
           fi
           pm2 save
