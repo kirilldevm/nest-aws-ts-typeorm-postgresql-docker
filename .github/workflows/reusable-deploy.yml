@@ -31,23 +31,43 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Align npm version (avoid npm ci lockfile drift across npm majors)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -v
+          npm -v
+          npm install -g npm@11.11.0
+          hash -r
+          npm -v
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Create environment file
+      - name: Build environment file
         env:
           NODE_ENV: ${{ vars.NODE_ENV }}
           PORT: ${{ vars.PORT }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_EXPIRES_IN: ${{ vars.JWT_EXPIRES_IN }}
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_SYNC: ${{ vars.DB_SYNC }}
         run: |
           {
             echo "NODE_ENV=${NODE_ENV}"
             echo "PORT=${PORT}"
             echo "JWT_SECRET=${JWT_SECRET}"
-            if [ -n "${DATABASE_URL}" ]; then
-              echo "DATABASE_URL=${DATABASE_URL}"
-            fi
+            echo "JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-3600}"
+            echo "POSTGRES_HOST=${POSTGRES_HOST}"
+            echo "POSTGRES_PORT=${POSTGRES_PORT:-5432}"
+            echo "POSTGRES_USER=${POSTGRES_USER}"
+            echo "POSTGRES_DB=${POSTGRES_DB}"
+            echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+            echo "DB_SYNC=${DB_SYNC:-0}"
           } > .env
 
       - name: Run tests
@@ -56,11 +76,20 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Run migrations
+        run: |
+          set -euo pipefail
+          if compgen -G "dist/migrations/*.js" > /dev/null; then
+            npm run typeorm:migrate
+          else
+            echo "No compiled migrations found (dist/migrations/*.js). Skipping migrations."
+          fi
+
       - name: Deploy with PM2
         run: |
           if pm2 describe "${{ inputs.app_name }}" >/dev/null 2>&1; then
             pm2 restart "${{ inputs.app_name }}" --update-env
           else
-            pm2 start dist/main.js --name "${{ inputs.app_name }}"
+            pm2 start dist/src/main.js --name "${{ inputs.app_name }}"
           fi
           pm2 save
