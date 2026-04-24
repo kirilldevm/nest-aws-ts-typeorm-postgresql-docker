@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { appConfig } from './configs/app.config';
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module';
         // allowUnknown: false,
       },
     }),
+    SentryModule.forRoot(),
     TasksModule,
     UsersModule,
   ],

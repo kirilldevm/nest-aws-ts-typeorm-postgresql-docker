@@ -57,6 +57,7 @@ jobs:
           POSTGRES_DB: ${{ vars.POSTGRES_DB }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           DB_SYNC: ${{ vars.DB_SYNC }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           if [ -n "${ENV_FILE_BASE64}" ]; then
             echo "${ENV_FILE_BASE64}" | base64 --decode > .env
@@ -72,6 +73,7 @@ jobs:
               echo "POSTGRES_DB=${POSTGRES_DB}"
               echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
               echo "DB_SYNC=${DB_SYNC:-0}"
+              echo "SENTRY_DSN=${SENTRY_DSN}"
             } > .env
           fi
 
