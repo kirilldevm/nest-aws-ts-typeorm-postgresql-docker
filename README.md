@@ -42,6 +42,7 @@ DB_SYNC=1
 
 JWT_SECRET=your-secret-key-min-32-chars
 JWT_EXPIRES_IN=3600
+SENTRY_DSN=
 ```
 
 ### 3. Database
@@ -153,6 +154,10 @@ npm run test:cov
 ```
 
 E2E tests use `tasks_e2e` by default; see `test/setup-env.ts` for environment overrides.
+
+## Monitoring (Sentry)
+
+Sentry is integrated as an optional runtime monitor. To enable it, set `SENTRY_DSN` in your environment (or in GitHub environment secrets/variables if your workflow builds `.env` there). If `SENTRY_DSN` is empty, Sentry initialization is skipped.
 
 ## Scripts
 
