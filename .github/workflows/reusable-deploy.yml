@@ -25,25 +25,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Align npm version (avoid npm ci lockfile drift across npm majors)
-        shell: bash
-        run: |
-          set -euo pipefail
-          node -v
-          npm -v
-          npm install -g npm@11.11.0
-          hash -r
-          npm -v
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Build environment file
         env:
           ENV_FILE_BASE64: ${{ secrets.ENV_FILE_BASE64 }}
@@ -77,26 +58,22 @@ jobs:
             } > .env
           fi
 
-      - name: Run tests
-        run: npm test -- --runInBand
-
-      - name: Build app
-        run: npm run build
-
-      - name: Run migrations
+      - name: Ensure docker compose is available
         run: |
           set -euo pipefail
-          if compgen -G "dist/migrations/*.js" > /dev/null; then
-            npm run typeorm:migrate
-          else
-            echo "No compiled migrations found (dist/migrations/*.js). Skipping migrations."
-          fi
+          docker version
+          docker compose version
 
-      - name: Deploy with PM2
+      - name: Deploy with Docker Compose
         run: |
-          if pm2 describe "${{ inputs.app_name }}" >/dev/null 2>&1; then
-            pm2 restart "${{ inputs.app_name }}" --update-env
-          else
-            pm2 start dist/src/main.js --name "${{ inputs.app_name }}"
+          set -euo pipefail
+          docker compose up -d postgres
+          docker compose run --rm --build app npm run typeorm:migrate
+          docker compose up -d --build app
+          docker compose ps
+
+      - name: Stop legacy PM2 process (if exists)
+        run: |
+          if command -v pm2 >/dev/null 2>&1; then
+            pm2 delete "${{ inputs.app_name }}" || true
           fi
-          pm2 save

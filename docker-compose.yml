@@ -6,7 +6,7 @@ services:
     container_name: nest_app
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - '${PORT:-3000}:3000'
     env_file:
       - .env
     environment:
@@ -23,9 +23,9 @@ services:
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: tasks_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data:rw
     user: '70:70' # Postgres user
@@ -33,7 +33,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'pg_isready -U postgres -d tasks_db -h localhost || exit 1',
+          'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost || exit 1',
         ]
       interval: 30s
       timeout: 10s
